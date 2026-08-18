@@ -37,8 +37,9 @@ def main():
     model = train_model(X_train, y_train)
     acc, report = evaluate_model(model, X_test, y_test)
 
-    print(f"Accuracy: {acc:.4f}")
-    print(report)
+   print(f"Accuracy: {acc:.4f}")
+print("Classification Report:")
+print(report)
 
     joblib.dump(model, "models/iris_model.joblib")
     print("Model saved to models/iris_model.joblib")
