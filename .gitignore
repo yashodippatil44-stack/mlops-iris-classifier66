@@ -1,0 +1,38 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+*.egg-info/
+
+# Data & Models (tracked separately via DVC in Experiment 3)
+data/*.csv
+data/*.parquet
+models/*.pkl
+models/*.joblib
+mlruns/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Environment
+.env
+
+# IDE
+.vscode/
+.idea/
+# MLflow
+.venv-mlflow/
+mlflow.db
+mlartifacts/
+
+# Generated artifacts
+confusion_matrix_*.png
+
+# Temporary files
+src/tempCodeRunnerFile.py
+
+# Feast environment
+practical5_feast/.venv-feast/
+
+practical5_feast/iris_feature_repo/feature_repo/data/*.db
