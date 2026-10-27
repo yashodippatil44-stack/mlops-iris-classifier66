@@ -1,0 +1,4 @@
+Run Name,CV F1 Macro,Test Accuracy,Run ID
+random_search_random_forest,0.9663367569249923,0.9666666666666667,a405d18513fe46dea5cd545f3025e2a7
+grid_search_random_forest,0.9663367569249923,0.9666666666666667,cfd3b5711bda4f999e7e682c0d5ddeda
+baseline_decision_tree,0.9663367569249923,0.9,286e668b803c4f55b05c9c51acfe6499
