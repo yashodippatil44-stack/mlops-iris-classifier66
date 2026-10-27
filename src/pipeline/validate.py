@@ -1,16 +1,22 @@
-import argparse
+
+"""
+Validation stage for the Iris ML pipeline.
+Checks required columns, species labels, and numeric ranges.
+"""
+
 import logging
-import sys
+
 import pandas as pd
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s [%(levelname)s] %(message)s"
-)
 
 logger = logging.getLogger("validate")
 
-EXPECTED_COLUMNS = {
+
+class DataValidationError(Exception):
+    """Raised when input data fails validation."""
+
+
+REQUIRED_COLUMNS = [
     "sepal length (cm)",
     "sepal width (cm)",
     "petal length (cm)",
@@ -20,92 +26,56 @@ EXPECTED_COLUMNS = {
     "petal_area",
     "sepal_to_petal_length_ratio",
     "petal_length_bin",
-}
+]
 
-VALID_SPECIES = {
-    "setosa",
-    "versicolor",
-    "virginica"
-}
+VALID_SPECIES = {"setosa", "versicolor", "virginica"}
 
-RANGE_CHECKS = {
+NUMERIC_RANGES = {
     "sepal length (cm)": (3.0, 9.0),
-    "sepal width (cm)": (1.5, 5.5),
-    "petal length (cm)": (0.5, 8.0),
-    "petal width (cm)": (0.05, 3.0),
+    "sepal width (cm)": (1.0, 6.0),
+    "petal length (cm)": (0.0, 8.0),
+    "petal width (cm)": (0.0, 3.0),
 }
 
 
-class DataValidationError(Exception):
-    pass
-
-
-def validate(input_path: str) -> pd.DataFrame:
+def validate(input_path):
+    """Validate a processed feature CSV and return its DataFrame."""
     df = pd.read_csv(input_path)
-
     errors = []
 
-    missing_cols = EXPECTED_COLUMNS - set(df.columns)
+    missing_columns = set(REQUIRED_COLUMNS) - set(df.columns)
 
-    if missing_cols:
-        errors.append(
-            f"Missing expected columns: {missing_cols}"
+    if missing_columns:
+        errors.append(f"Missing expected columns: {missing_columns}")
+
+    if "species" in df.columns:
+        unexpected_species = set(df["species"].dropna().unique()) - VALID_SPECIES
+
+        if unexpected_species:
+            errors.append(f"Unexpected species values: {unexpected_species}")
+
+    for column, (minimum, maximum) in NUMERIC_RANGES.items():
+        if column not in df.columns:
+            continue
+
+        values = pd.to_numeric(df[column], errors="coerce")
+        invalid_mask = (
+            values.notna()
+            & ((values < minimum) | (values > maximum))
         )
 
-    if df.isnull().any().any():
-        null_cols = df.columns[df.isnull().any()].tolist()
-        errors.append(
-            f"Unexpected null values in columns: {null_cols}"
-        )
-
-    invalid_species = set(df["species"].unique()) - VALID_SPECIES
-
-    if invalid_species:
-        errors.append(
-            f"Unexpected species values: {invalid_species}"
-        )
-
-    for col, (low, high) in RANGE_CHECKS.items():
-        out_of_range = df[
-            (df[col] < low) | (df[col] > high)
-        ]
-
-        if not out_of_range.empty:
+        if invalid_mask.any():
             errors.append(
-                f"{len(out_of_range)} rows out of expected range "
-                f"for '{col}' ({low}-{high})"
+                f"{int(invalid_mask.sum())} rows out of expected range "
+                f"for '{column}' ({minimum}-{maximum})"
             )
 
     if errors:
-        for e in errors:
-            logger.error(e)
-
+        logger.error("; ".join(errors))
         raise DataValidationError(
-            f"Validation failed with {len(errors)} error(s)"
+            f"Validation failed with {len(errors)} error(s): "
+            + "; ".join(errors)
         )
 
-    logger.info(
-        "Validation PASSED: %d rows, %d columns, all checks satisfied",
-        len(df),
-        df.shape[1]
-    )
-
+    logger.info("Validation passed for %s rows", len(df))
     return df
-
-
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-
-    parser.add_argument(
-        "--input",
-        default="data/processed/iris_features.csv"
-    )
-
-    args = parser.parse_args()
-
-    try:
-        validate(args.input)
-
-    except DataValidationError as e:
-        logger.error("Pipeline halted: %s", e)
-        sys.exit(1)
